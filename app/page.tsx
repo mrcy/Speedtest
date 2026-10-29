@@ -40,7 +40,7 @@ export default function Home() {
   async function startTest() {
     if (status === "running") return;
     setStatus("running");
-    setPhase("Loading public LibreSpeed servers");
+    setPhase("Preparing connection test");
     setError("");
     setDownload(null); setUpload(null); setPing(null); setJitter(null); setSamples([]);
 
@@ -86,12 +86,12 @@ export default function Home() {
 
     try {
       await loadEngine();
-      setPhase("Finding the best available public server");
+      setPhase("Finding the best test server");
       const response = await fetch("/librespeed/server-list.json", { cache: "no-store" });
-      if (!response.ok) throw new Error("Could not load the public server list.");
+      if (!response.ok) throw new Error("Could not load the test server list.");
       const points = await response.json() as LibreServer[];
       const usable = points.filter((point) => point.server && point.dlURL && point.ulURL && point.pingURL && point.getIpURL);
-      if (!usable.length) throw new Error("No public LibreSpeed servers were returned.");
+      if (!usable.length) throw new Error("No test servers are available right now.");
       const Engine = win.Speedtest;
       if (!Engine) throw new Error("LibreSpeed engine is unavailable.");
       const engine = new Engine();
@@ -148,7 +148,7 @@ export default function Home() {
       });
       await done;
       setStatus("done");
-      setPhase("Test complete · public LibreSpeed server");
+      setPhase("Test complete · connection results saved");
       const item: Result = {
         date: new Date().toISOString(),
         download: measuredDownload ?? 0,
@@ -156,13 +156,13 @@ export default function Home() {
         ping: measuredPing ?? 0,
         jitter: measuredJitter ?? 0
       };
-      const old = JSON.parse(localStorage.getItem("nova-speedtest-history") || "[]");
+      const old = JSON.parse(localStorage.getItem("viera-speedtest-history") || localStorage.getItem("nova-speedtest-history") || "[]");
       const next = [item, ...old].slice(0, 10);
       localStorage.setItem("viera-speedtest-history", JSON.stringify(next));
       setHistory(next);
     } catch (e) {
       setStatus("error"); setPhase("Test failed");
-      setError(e instanceof Error ? e.message : "Unable to complete the public speed test.");
+      setError(e instanceof Error ? e.message : "Unable to complete the speed test.");
     }
   }
 
@@ -194,7 +194,7 @@ export default function Home() {
       {showInstallHelp && <div className="install-help"><strong>Install Viera on your phone</strong><p>Android: open the browser menu ⋮ and choose <b>Install app</b> or <b>Add to Home screen</b>. iPhone: tap Share, then <b>Add to Home Screen</b>. If this option is missing, wait for the latest deployment and reload the site over HTTPS.</p><button onClick={() => setShowInstallHelp(false)}>GOT IT ×</button></div>}
       <div className="eyebrow"><span className="eyebrow-line" /> CONNECTION DIAGNOSTICS</div>
       <h1>Know your <span>real speed.</span></h1>
-      <p className="subtitle">A browser-based speed test using public LibreSpeed servers.</p>
+      <p className="subtitle">A clean, real-time view of your internet performance.</p>
       <div className="test-layout">
         <div className="gauge-card">
           <div className="card-top"><span>LIVE THROUGHPUT</span><span className={`status-tag ${status}`}>● {status === "running" ? "TEST RUNNING" : status === "done" ? "COMPLETE" : status === "error" ? "ERROR" : "READY"}</span></div>
@@ -205,14 +205,11 @@ export default function Home() {
           <button className="start-button" onClick={startTest} disabled={status === "running"}><span>{status === "running" ? "TEST IN PROGRESS" : status === "done" ? "↻ RUN AGAIN" : "▶ START SPEED TEST"}</span><span className="button-arrow">↗</span></button>
           <div className="phase-line"><span className={status === "running" ? "pulse" : ""} />{phase}</div>
           {error && <p className="error-message">{error}</p>}
-          <div className="gauge-foot"><span>TEST ENGINE</span><strong>LibreSpeed public network</strong></div>
-        </div>
-        <div className="metrics-column">
-          <div className="metric-card"><div className="metric-heading"><span className="metric-icon down">↓</span><span>DOWNLOAD</span><span className="metric-live">Mbps</span></div><div className="metric-value">{fmt(download)} <small>Mbps</small></div><div className="mini-bars">{Array.from({length:24},(_,i)=><i key={i} style={{height:`${12+((i*17+(samples.length?Math.round(samples[samples.length-1]):7))%70)}%`}} />)}</div><p>Receiving data from selected public server</p></div>
-          <div className="metric-card"><div className="metric-heading"><span className="metric-icon up">↑</span><span>UPLOAD</span><span className="metric-live">Mbps</span></div><div className="metric-value">{fmt(upload)} <small>Mbps</small></div><div className="mini-bars upload-bars">{Array.from({length:24},(_,i)=><i key={i} style={{height:`${12+((i*13+19)%64)}%`}} />)}</div><p>Sending data to selected public server</p></div>
-          <div className="latency-grid">
-            <div className="latency-card"><div><span className="latency-symbol">◷</span> PING</div><strong>{fmt(ping)}<small>ms</small></strong><span className="metric-caption">Idle latency</span></div>
-            <div className="latency-card"><div><span className="latency-symbol jitter-symbol">∿</span> JITTER</div><strong>{fmt(jitter)}<small>ms</small></strong><span className="metric-caption">Latency variation</span></div>
+          <div className="gauge-foot"><span>LIVE CONNECTION</span><strong>Download · Upload · Latency</strong></div>
+          <div className="inside-metrics">
+            <div className="inside-metric upload-metric"><span className="inside-label"><i>↑</i> UPLOAD</span><strong>{fmt(upload)} <small>Mbps</small></strong><div className="inside-track"><span style={{width: upload === null ? "0%" : `${Math.min(100, Math.max(4, upload / Math.max(download || 1, upload || 1) * 100))}%`}} /></div></div>
+            <div className="inside-metric"><span className="inside-label"><i>◷</i> PING</span><strong>{fmt(ping)} <small>ms</small></strong><span className="inside-note">Latency</span></div>
+            <div className="inside-metric jitter-metric"><span className="inside-label"><i>∿</i> JITTER</span><strong>{fmt(jitter)} <small>ms</small></strong><span className="inside-note">Stability</span></div>
           </div>
         </div>
       </div>
@@ -221,6 +218,6 @@ export default function Home() {
       <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> YOUR DATA</div><h2>Test history<span>.</span></h2></div><button className="clear-button" onClick={clearHistory} disabled={!history.length}>CLEAR HISTORY ×</button></div>
       {history.length ? <div className="history-table"><div className="history-row history-header"><span>DATE & TIME</span><span>DOWNLOAD</span><span>UPLOAD</span><span>PING</span><span>JITTER</span></div>{history.map((h,i)=><div className="history-row" key={h.date+i}><span>{new Date(h.date).toLocaleString()}</span><b>{fmt(h.download)} <small>Mbps</small></b><b>{fmt(h.upload)} <small>Mbps</small></b><span>{fmt(h.ping)} ms</span><span>{fmt(h.jitter)} ms</span></div>)}</div> : <div className="empty-history"><span className="empty-icon">⌁</span><div><strong>No test data yet</strong><p>Run your first speed test. Your last 10 results will appear here.</p></div></div>}
     </section>
-    <footer><span>© {new Date().getFullYear()} VIERA SPEEDTEST</span><span>PUBLIC TEST SERVERS · RESULTS DEPEND ON SERVER & NETWORK</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
+    <footer><span>© {new Date().getFullYear()} VIERA SPEEDTEST</span><span>REAL-TIME CONNECTION METRICS</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
   </main>;
 }
