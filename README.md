@@ -1,6 +1,6 @@
-# NOVA Speedtest PRO
+# Viera Speedtest PRO
 
-NOVA is a custom Next.js speed-test interface. The site UI can be hosted on Vercel while browser test traffic goes directly to public third-party test infrastructure.
+Viera is a custom Next.js speed-test interface. The site UI can be hosted on Vercel while browser test traffic goes directly to public third-party test infrastructure.
 
 ## Current test engine
 
@@ -20,7 +20,7 @@ No environment variables are required for the LibreSpeed integration.
 
 ## Accuracy and limitations
 
-This is a public-server speed test, not a guarantee of ISP-grade benchmarking. Results depend on the user's connection, browser, selected test server, server load, and route between them. The engine and server list are served from the same origin as NOVA, reducing dependency on third-party CDNs for startup. The selected public test servers still need to be reachable and permit cross-origin test requests.
+This is a public-server speed test, not a guarantee of ISP-grade benchmarking. Results depend on the user's connection, browser, selected test server, server load, and route between them. The engine and server list are served from the same origin as Viera, reducing dependency on third-party CDNs for startup. The selected public test servers still need to be reachable and permit cross-origin test requests.
 
 The M-Lab NDT7 engine is a candidate for a second, independent test mode but is not yet wired into the current interface. M-Lab tests use their own measurement methodology and data policy; any integration should clearly explain that before the test starts.
 
