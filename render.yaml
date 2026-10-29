@@ -3,6 +3,7 @@ services:
     name: nova-speedtest-backend
     runtime: docker
     plan: free
+    region: frankfurt
     dockerfilePath: ./deploy/librespeed/Dockerfile
     dockerContext: ./deploy/librespeed
     healthCheckPath: /
@@ -16,6 +17,7 @@ services:
     name: nova-speedtest
     runtime: node
     plan: free
+    region: frankfurt
     buildCommand: npm install && npm run build
     startCommand: npm run start
     healthCheckPath: /
@@ -26,4 +28,4 @@ services:
         fromService:
           type: web
           name: nova-speedtest-backend
-          property: host
+          envVarKey: RENDER_EXTERNAL_URL
