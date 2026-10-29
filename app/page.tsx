@@ -75,8 +75,14 @@ export default function Home() {
       const points = await response.json() as LibreServer[];
       const usable = points.filter((point) => point.server && point.dlURL && point.ulURL && point.pingURL && point.getIpURL);
       if (!usable.length) throw new Error("No public LibreSpeed servers were returned.");
-      const engine = new win.Speedtest!();
+      const Engine = win.Speedtest;
+      if (!Engine) throw new Error("LibreSpeed engine is unavailable.");
+      const engine = new Engine();
       usable.forEach((point) => engine.addTestPoint(point));
+      let measuredDownload: number | null = null;
+      let measuredUpload: number | null = null;
+      let measuredPing: number | null = null;
+      let measuredJitter: number | null = null;
       const done = new Promise<void>((resolve, reject) => {
         let selectedName = "";
         let finished = false;
@@ -98,10 +104,10 @@ export default function Home() {
           const u = Number(data.ulStatus);
           const p = Number(data.pingStatus);
           const j = Number(data.jitterStatus);
-          if (Number.isFinite(d) && data.dlStatus) { setDownload(d); setSamples(old => [...old.slice(-39), d]); }
-          if (Number.isFinite(u) && data.ulStatus) setUpload(u);
-          if (Number.isFinite(p) && data.pingStatus) setPing(p);
-          if (Number.isFinite(j) && data.jitterStatus) setJitter(j);
+          if (Number.isFinite(d) && data.dlStatus) { measuredDownload = d; setDownload(d); setSamples(old => [...old.slice(-39), d]); }
+          if (Number.isFinite(u) && data.ulStatus) { measuredUpload = u; setUpload(u); }
+          if (Number.isFinite(p) && data.pingStatus) { measuredPing = p; setPing(p); }
+          if (Number.isFinite(j) && data.jitterStatus) { measuredJitter = j; setJitter(j); }
           if (data.server?.name && data.server.name !== selectedName) {
             selectedName = data.server.name;
             setPhase("Testing with " + selectedName);
@@ -128,10 +134,10 @@ export default function Home() {
       setPhase("Test complete · public LibreSpeed server");
       const item: Result = {
         date: new Date().toISOString(),
-        download: download ?? 0,
-        upload: upload ?? 0,
-        ping: ping ?? 0,
-        jitter: jitter ?? 0
+        download: measuredDownload ?? 0,
+        upload: measuredUpload ?? 0,
+        ping: measuredPing ?? 0,
+        jitter: measuredJitter ?? 0
       };
       const old = JSON.parse(localStorage.getItem("nova-speedtest-history") || "[]");
       const next = [item, ...old].slice(0, 10);
