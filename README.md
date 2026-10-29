@@ -1,26 +1,27 @@
 # NOVA Speedtest PRO
 
-NOVA is a custom Next.js interface using the open-source LibreSpeed browser engine and a shortlist of community-hosted public test nodes.
+NOVA is a custom Next.js speed-test interface hosted on Vercel. The browser sends test traffic to the application's own Vercel-hosted API routes; it does not use public LibreSpeed nodes or load a third-party test engine.
 
-## Deploy the interface to Vercel
+## Deploy to Vercel
 
-1. Import this GitHub repository into Vercel: https://vercel.com/new
+1. Import this repository into [Vercel](https://vercel.com/new).
 2. Keep the framework preset as Next.js and the default build settings.
-3. Click Deploy.
-4. Open the generated Vercel URL and run a test.
+3. Deploy, then open the generated Vercel URL and run a test.
 
-No private backend environment variable is required for this community-node setup. Vercel hosts the interface; download/upload traffic goes directly from the browser to the selected public LibreSpeed test node.
+No environment variables are required.
 
-## Important accuracy note
+## How this test works
 
-The public test nodes are operated by third parties. Availability, geographic proximity, CORS configuration, and server capacity vary. A public node can be unavailable or saturated, so this setup is a low-cost starting point, not a guarantee of ISP-grade measurement accuracy. For dependable public results, deploy and maintain your own high-bandwidth LibreSpeed backend, then add multiple nodes in different regions.
+- Ping and jitter are estimated by making uncached requests to the app's own Vercel endpoint.
+- Download is estimated by repeatedly downloading small generated binary chunks from a Vercel Function.
+- Upload is estimated by repeatedly posting small binary chunks to a Vercel Function.
+- The last 10 results are stored in the current browser's localStorage.
 
-## Features
+## Important accuracy and platform limits
 
-- Download, upload, browser-based latency, and jitter measurements.
-- Selects the reachable test point with the lowest measured latency from the configured shortlist.
-- Last 10 results stored in the current browser's localStorage.
-- Share result using native share sheet or clipboard.
+This is a lightweight, self-hosted-on-Vercel prototype, not an ISP-grade speed test. Measurements include serverless function startup, execution, region, and platform overhead, so they may differ significantly from the user's actual line speed. Vercel Functions have request/response payload limits and plan-dependent execution limits; this implementation intentionally uses small chunks. Repeated tests consume function invocations and bandwidth. Do not treat the results as a benchmark for very fast connections or heavy public traffic.
+
+For accurate high-throughput testing and larger upload/download transfers, use a dedicated high-bandwidth LibreSpeed server or VPS. The website UI can remain on Vercel.
 
 ## Development
 
@@ -31,12 +32,6 @@ npm install
 npm run dev
 ```
 
-## Privacy and traffic
+## Privacy
 
-The test sends download and upload traffic directly to the selected public test node. A speed test can consume a noticeable amount of data. History remains in the current browser; this starter does not store test results in a server database.
-
-## References
-
-- LibreSpeed source and documentation: https://github.com/librespeed/speedtest
-- Public LibreSpeed server list: https://librespeed.org/backend-servers/servers.php
-- Vercel documentation: https://vercel.com/docs
+The test transfers temporary binary data between the browser and this application's Vercel endpoints. The app does not save the transferred payload or send test results to a database. Local history stays in the current browser.
