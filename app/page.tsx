@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Result = { date: string; download: number; upload: number; ping: number; jitter: number };
 const fmt = (n: number | null) => n === null || !Number.isFinite(n) ? "—" : n.toFixed(n >= 100 ? 0 : 1);
@@ -15,7 +15,6 @@ export default function Home() {
   const [history, setHistory] = useState<Result[]>([]);
   const [samples, setSamples] = useState<number[]>([]);
   const [error, setError] = useState("");
-  const latest = useRef({ download: null as number | null, upload: null as number | null, ping: null as number | null, jitter: null as number | null });
 
   useEffect(() => {
     try { setHistory(JSON.parse(localStorage.getItem("nova-speedtest-history") || "[]")); } catch {}
@@ -55,7 +54,7 @@ export default function Home() {
       setDownload(downloadMbps);
       setPhase("Measuring upload to this Vercel deployment");
       let uploaded = 0;
-      const payload = new Uint8Array(512 * 1024); crypto.getRandomValues(payload);
+      const payload = new Uint8Array(512 * 1024); payload.fill(0x5a);
       const uploadStart = performance.now();
       const uploadDeadline = uploadStart + 5000;
       while (performance.now() < uploadDeadline) {
