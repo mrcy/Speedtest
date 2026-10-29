@@ -7,6 +7,17 @@ type Result = { date: string; download: number; upload: number; ping: number; ji
 const fmt = (n: number | null) => n === null || !Number.isFinite(n) ? "—" : n.toFixed(n >= 100 ? 0 : 1);
 const ENGINE_URL = "https://cdn.jsdelivr.net/gh/librespeed/speedtest@master/speedtest.js";
 
+// Public community test nodes. These are third-party servers, not Vercel infrastructure.
+const TEST_POINTS = [
+  { name: "Frankfurt, Germany · Clouvider", server: "https://fra.speedtest.clouvider.net/backend/", dlURL: "garbage.php", ulURL: "empty.php", pingURL: "empty.php", getIpURL: "getIP.php" },
+  { name: "Amsterdam, Netherlands · Clouvider", server: "https://ams.speedtest.clouvider.net/backend/", dlURL: "garbage.php", ulURL: "empty.php", pingURL: "empty.php", getIpURL: "getIP.php" },
+  { name: "London, United Kingdom · Clouvider", server: "https://lon.speedtest.clouvider.net/backend/", dlURL: "garbage.php", ulURL: "empty.php", pingURL: "empty.php", getIpURL: "getIP.php" },
+  { name: "Nuremberg, Germany · LibreSpeed", server: "https://de4.backend.librespeed.org/", dlURL: "garbage.php", ulURL: "empty.php", pingURL: "empty.php", getIpURL: "getIP.php" },
+  { name: "Prague, Czech Republic · CESNET", server: "https://speedtest.cesnet.cz/", dlURL: "backend/garbage.php", ulURL: "backend/empty.php", pingURL: "backend/empty.php", getIpURL: "backend/getIP.php" },
+  { name: "Tehran, Iran · Faraso", server: "https://st.bardia.tech/", dlURL: "backend/garbage.php", ulURL: "backend/empty.php", pingURL: "backend/empty.php", getIpURL: "backend/getIP.php" },
+  { name: "Qom, Iran · Amin IDC", server: "https://fastme.ir/", dlURL: "backend/garbage.php", ulURL: "backend/empty.php", pingURL: "backend/empty.php", getIpURL: "backend/getIP.php" }
+];
+
 function loadLibreSpeed(): Promise<void> {
   if (typeof window === "undefined") return Promise.reject(new Error("Browser required"));
   if (window.Speedtest) return Promise.resolve();
@@ -49,10 +60,6 @@ export default function Home() {
     setDownload(null); setUpload(null); setPing(null); setJitter(null); setSamples([]);
     latest.current = { download: null, upload: null, ping: null, jitter: null };
     try {
-      const configResponse = await fetch("/api/config", { cache: "no-store" });
-      const config = await configResponse.json();
-      const backend = typeof config.backendUrl === "string" ? config.backendUrl.replace(/\/+$/, "") : "";
-      if (!backend) throw new Error("The LibreSpeed test node is not configured yet. Deploy the backend and set LIBRESPEED_SERVER_URL in the hosting dashboard.");
       await loadLibreSpeed();
       if (!window.Speedtest) throw new Error("LibreSpeed engine is unavailable.");
       const test = new window.Speedtest();
@@ -60,10 +67,7 @@ export default function Home() {
       test.setParameter("time_dl", 12);
       test.setParameter("time_ul", 12);
       test.setParameter("time_ping", 10);
-      test.addTestPoint({
-        name: "NOVA LibreSpeed Node", server: backend + "/",
-        dlURL: "garbage.php", ulURL: "empty.php", pingURL: "empty.php", getIpURL: "getIP.php"
-      });
+      TEST_POINTS.forEach(point => test.addTestPoint(point));
       test.onupdate = (data: any) => {
         const d = Number(data.dlStatus), u = Number(data.ulStatus), p = Number(data.pingStatus), j = Number(data.jitterStatus);
         if (Number.isFinite(d) && d >= 0 && data.dlStatus !== "") {
@@ -93,7 +97,7 @@ export default function Home() {
       test.selectServer((server: any) => {
         if (!server) {
           setStatus("error"); setPhase("Test node unavailable");
-          setError("Could not reach the LibreSpeed node. It may be waking up, or its URL/CORS configuration may be incorrect.");
+          setError("Could not reach the available test nodes. Some public nodes may be offline or block browser requests. Please try again.");
           return;
         }
         setPhase("Starting test"); test.start();
@@ -122,7 +126,7 @@ export default function Home() {
     <section className="hero">
       <div className="eyebrow"><span className="eyebrow-line" /> CONNECTION DIAGNOSTICS</div>
       <h1>Know your <span>real speed.</span></h1>
-      <p className="subtitle">A browser-based connection test powered by the open-source LibreSpeed engine.</p>
+      <p className="subtitle">A browser-based connection test powered by LibreSpeed and community-hosted test nodes.</p>
       <div className="test-layout">
         <div className="gauge-card">
           <div className="card-top"><span>LIVE THROUGHPUT</span><span className={`status-tag ${status}`}>● {status === "running" ? "TEST RUNNING" : status === "done" ? "COMPLETE" : status === "error" ? "ERROR" : "READY"}</span></div>
@@ -149,6 +153,6 @@ export default function Home() {
       <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> YOUR DATA</div><h2>Test history<span>.</span></h2></div><button className="clear-button" onClick={clearHistory} disabled={!history.length}>CLEAR HISTORY ×</button></div>
       {history.length ? <div className="history-table"><div className="history-row history-header"><span>DATE & TIME</span><span>DOWNLOAD</span><span>UPLOAD</span><span>PING</span><span>JITTER</span></div>{history.map((h,i)=><div className="history-row" key={h.date+i}><span>{new Date(h.date).toLocaleString()}</span><b>{fmt(h.download)} <small>Mbps</small></b><b>{fmt(h.upload)} <small>Mbps</small></b><span>{fmt(h.ping)} ms</span><span>{fmt(h.jitter)} ms</span></div>)}</div> : <div className="empty-history"><span className="empty-icon">⌁</span><div><strong>No test data yet</strong><p>Run your first speed test. Your last 10 results will appear here.</p></div></div>}
     </section>
-    <footer><span>© {new Date().getFullYear()} NOVA SPEEDTEST</span><span>POWERED BY LIBRESPEED · RESULTS DEPEND ON TEST NODE CAPACITY</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
+    <footer><span>© {new Date().getFullYear()} NOVA SPEEDTEST</span><span>LIBRESPEED COMMUNITY NODES · RESULTS DEPEND ON SERVER CAPACITY</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
   </main>;
 }
