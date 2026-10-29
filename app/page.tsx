@@ -21,7 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("viera-speedtest-history") || localStorage.getItem("viera-speedtest-history") || "[]";
+      const saved = localStorage.getItem("viera-speedtest-history") || localStorage.getItem("nova-speedtest-history") || "[]";
       setHistory(JSON.parse(saved));
       localStorage.setItem("viera-speedtest-history", saved);
     } catch {}
