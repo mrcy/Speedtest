@@ -57,7 +57,7 @@ export default function Home() {
           return;
         }
         const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/gh/librespeed/speedtest@master/speedtest.js";
+        script.src = "/librespeed/speedtest.js";
         script.async = true;
         script.dataset.novaLibrespeed = "true";
         script.onload = () => resolve();
@@ -70,7 +70,7 @@ export default function Home() {
     try {
       await loadEngine();
       setPhase("Finding the best available public server");
-      const response = await fetch("https://cdn.jsdelivr.net/gh/librespeed/speedtest@master/server-list.json", { cache: "no-store" });
+      const response = await fetch("/librespeed/server-list.json", { cache: "no-store" });
       if (!response.ok) throw new Error("Could not load the public server list.");
       const points = await response.json() as LibreServer[];
       const usable = points.filter((point) => point.server && point.dlURL && point.ulURL && point.pingURL && point.getIpURL);
