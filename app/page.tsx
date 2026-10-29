@@ -15,9 +15,26 @@ export default function Home() {
   const [history, setHistory] = useState<Result[]>([]);
   const [samples, setSamples] = useState<number[]>([]);
   const [error, setError] = useState("");
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
-    try { setHistory(JSON.parse(localStorage.getItem("nova-speedtest-history") || "[]")); } catch {}
+    try {
+      const saved = localStorage.getItem("viera-speedtest-history") || localStorage.getItem("viera-speedtest-history") || "[]";
+      setHistory(JSON.parse(saved));
+      localStorage.setItem("viera-speedtest-history", saved);
+    } catch {}
+    const standalone = window.matchMedia("(display-mode: standalone)").matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    setIsInstalled(standalone);
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", () => { setIsInstalled(true); setInstallPrompt(null); });
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
   }, []);
 
   async function startTest() {
@@ -141,7 +158,7 @@ export default function Home() {
       };
       const old = JSON.parse(localStorage.getItem("nova-speedtest-history") || "[]");
       const next = [item, ...old].slice(0, 10);
-      localStorage.setItem("nova-speedtest-history", JSON.stringify(next));
+      localStorage.setItem("viera-speedtest-history", JSON.stringify(next));
       setHistory(next);
     } catch (e) {
       setStatus("error"); setPhase("Test failed");
@@ -149,22 +166,32 @@ export default function Home() {
     }
   }
 
-  function clearHistory() { localStorage.removeItem("nova-speedtest-history"); setHistory([]); }
+  function clearHistory() { localStorage.removeItem("viera-speedtest-history"); localStorage.removeItem("nova-speedtest-history"); setHistory([]); }
   async function share() {
     const text = `My internet speed: Download ${fmt(download)} Mbps, Upload ${fmt(upload)} Mbps, Ping ${fmt(ping)} ms, Jitter ${fmt(jitter)} ms`;
     try {
-      if (navigator.share) await navigator.share({ title: "NOVA Speedtest result", text });
+      if (navigator.share) await navigator.share({ title: "Viera Speedtest result", text });
       else { await navigator.clipboard.writeText(text); setPhase("Result copied to clipboard"); }
     } catch {}
   }
 
   return <main className="shell">
     <header className="topbar">
-      <a className="brand" href="#"><span className="brand-mark">N</span><span>NOVA<span className="brand-light">SPEED</span></span></a>
+      <a className="brand" href="#"><span className="brand-mark">V</span><span>VIERA<span className="brand-light">SPEED</span></span></a>
       <div className="top-pill"><span className="live-dot" /> INTERNET PERFORMANCE LAB</div>
-      <a className="github-link" href="https://github.com/librespeed/speedtest/blob/master/server-list.json" target="_blank" rel="noreferrer">PUBLIC NODES ↗</a>
+      <div className="header-actions">
+        {!isInstalled && <button className="install-button" onClick={async () => {
+          if (installPrompt && "prompt" in installPrompt) {
+            const promptEvent = installPrompt as Event & { prompt: () => Promise<void>; userChoice?: Promise<{ outcome: string }> };
+            await promptEvent.prompt();
+            setInstallPrompt(null);
+          } else setShowInstallHelp(v => !v);
+        }}>{installPrompt ? "↓ INSTALL APP" : "＋ ADD TO PHONE"}</button>}
+        <a className="github-link" href="https://github.com/librespeed/speedtest/blob/master/server-list.json" target="_blank" rel="noreferrer">PUBLIC NODES ↗</a>
+      </div>
     </header>
     <section className="hero">
+      {showInstallHelp && <div className="install-help"><strong>Install Viera on your phone</strong><p>Android: open the browser menu ⋮ and choose <b>Install app</b> or <b>Add to Home screen</b>. iPhone: tap Share, then <b>Add to Home Screen</b>. If this option is missing, wait for the latest deployment and reload the site over HTTPS.</p><button onClick={() => setShowInstallHelp(false)}>GOT IT ×</button></div>}
       <div className="eyebrow"><span className="eyebrow-line" /> CONNECTION DIAGNOSTICS</div>
       <h1>Know your <span>real speed.</span></h1>
       <p className="subtitle">A browser-based speed test using public LibreSpeed servers.</p>
@@ -194,6 +221,6 @@ export default function Home() {
       <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> YOUR DATA</div><h2>Test history<span>.</span></h2></div><button className="clear-button" onClick={clearHistory} disabled={!history.length}>CLEAR HISTORY ×</button></div>
       {history.length ? <div className="history-table"><div className="history-row history-header"><span>DATE & TIME</span><span>DOWNLOAD</span><span>UPLOAD</span><span>PING</span><span>JITTER</span></div>{history.map((h,i)=><div className="history-row" key={h.date+i}><span>{new Date(h.date).toLocaleString()}</span><b>{fmt(h.download)} <small>Mbps</small></b><b>{fmt(h.upload)} <small>Mbps</small></b><span>{fmt(h.ping)} ms</span><span>{fmt(h.jitter)} ms</span></div>)}</div> : <div className="empty-history"><span className="empty-icon">⌁</span><div><strong>No test data yet</strong><p>Run your first speed test. Your last 10 results will appear here.</p></div></div>}
     </section>
-    <footer><span>© {new Date().getFullYear()} NOVA SPEEDTEST</span><span>PUBLIC TEST SERVERS · RESULTS DEPEND ON SERVER & NETWORK</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
+    <footer><span>© {new Date().getFullYear()} VIERA SPEEDTEST</span><span>PUBLIC TEST SERVERS · RESULTS DEPEND ON SERVER & NETWORK</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
   </main>;
 }
