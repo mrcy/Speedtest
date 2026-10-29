@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NOVA Speedtest PRO",
-  description: "Measure internet download, upload, latency and jitter against Cloudflare's network.",
+  title: "Viera Speedtest",
+  applicationName: "Viera Speedtest",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Viera" },
+  description: "Measure internet download, upload, latency and jitter using public speed test servers.",
+  themeColor: "#080b10",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
