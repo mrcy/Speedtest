@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Result = { date: string; download: number; upload: number; ping: number; jitter: number };
 const fmt = (n: number | null) => n === null || !Number.isFinite(n) ? "—" : n.toFixed(n >= 100 ? 0 : 1);
@@ -17,7 +17,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const activeCancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     try {
@@ -43,6 +43,7 @@ export default function Home() {
     setPhase("Preparing connection test");
     setError("");
     setDownload(null); setUpload(null); setPing(null); setJitter(null); setSamples([]);
+    const cancelled = { value: false };
 
     type LibreServer = {
       name: string; server: string; id?: number;
@@ -96,6 +97,7 @@ export default function Home() {
       if (!Engine) throw new Error("LibreSpeed engine is unavailable.");
       const engine = new Engine();
       usable.forEach((point) => engine.addTestPoint(point));
+      activeCancelRef.current = () => { cancelled.value = true; engine.abort(); };
       let measuredDownload: number | null = null;
       let measuredUpload: number | null = null;
       let measuredPing: number | null = null;
@@ -147,6 +149,7 @@ export default function Home() {
         });
       });
       await done;
+      activeCancelRef.current = null;
       setStatus("done");
       setPhase("Test complete · connection results saved");
       const item: Result = {
@@ -161,6 +164,8 @@ export default function Home() {
       localStorage.setItem("viera-speedtest-history", JSON.stringify(next));
       setHistory(next);
     } catch (e) {
+      activeCancelRef.current = null;
+      if (cancelled.value) { setStatus("idle"); setPhase("Test stopped"); setError(""); return; }
       setStatus("error"); setPhase("Test failed");
       setError(e instanceof Error ? e.message : "Unable to complete the speed test.");
     }
@@ -182,16 +187,14 @@ export default function Home() {
       <div className="header-actions">
         {!isInstalled && <button className="install-button" onClick={async () => {
           if (installPrompt && "prompt" in installPrompt) {
-            const promptEvent = installPrompt as Event & { prompt: () => Promise<void>; userChoice?: Promise<{ outcome: string }> };
+            const promptEvent = installPrompt as Event & { prompt: () => Promise<void> };
             await promptEvent.prompt();
             setInstallPrompt(null);
-          } else setShowInstallHelp(v => !v);
-        }}>{installPrompt ? "↓ INSTALL APP" : "＋ ADD TO PHONE"}</button>}
-        <a className="github-link" href="https://github.com/librespeed/speedtest/blob/master/server-list.json" target="_blank" rel="noreferrer">PUBLIC NODES ↗</a>
+          }
+        }}>↓ INSTALL APP</button>}
       </div>
     </header>
     <section className="hero">
-      {showInstallHelp && <div className="install-help"><strong>Install Viera on your phone</strong><p>Android: open the browser menu ⋮ and choose <b>Install app</b> or <b>Add to Home screen</b>. iPhone: tap Share, then <b>Add to Home Screen</b>. If this option is missing, wait for the latest deployment and reload the site over HTTPS.</p><button onClick={() => setShowInstallHelp(false)}>GOT IT ×</button></div>}
       <div className="eyebrow"><span className="eyebrow-line" /> CONNECTION DIAGNOSTICS</div>
       <h1>Know your <span>real speed.</span></h1>
       <p className="subtitle">A clean, real-time view of your internet performance.</p>
@@ -207,7 +210,7 @@ export default function Home() {
             <div className="inside-metric"><span className="inside-label"><i>◷</i> PING</span><strong>{fmt(ping)} <small>ms</small></strong><span className="inside-note">Latency</span></div>
             <div className="inside-metric jitter-metric"><span className="inside-label"><i>∿</i> JITTER</span><strong>{fmt(jitter)} <small>ms</small></strong><span className="inside-note">Stability</span></div>
           </div>
-          <button className="start-button" onClick={startTest} disabled={status === "running"}><span>{status === "running" ? "TEST IN PROGRESS" : status === "done" ? "↻ RUN AGAIN" : "▶ START SPEED TEST"}</span><span className="button-arrow">↗</span></button>
+          <button className={`start-button ${status === "running" ? "stop-button" : ""}`} onClick={status === "running" ? () => activeCancelRef.current?.() : startTest}><span>{status === "running" ? "■ STOP TEST" : status === "done" ? "↻ RUN AGAIN" : "▶ START SPEED TEST"}</span><span className="button-arrow">{status === "running" ? "×" : "↗"}</span></button>
           <div className="phase-line"><span className={status === "running" ? "pulse" : ""} />{phase}</div>
           {error && <p className="error-message">{error}</p>}
           <div className="gauge-foot"><span>LIVE CONNECTION</span><strong>Download · Upload · Latency</strong></div>
@@ -216,7 +219,7 @@ export default function Home() {
     </section>
     <section className="history-section">
       <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> YOUR DATA</div><h2>Test history<span>.</span></h2></div><button className="clear-button" onClick={clearHistory} disabled={!history.length}>CLEAR HISTORY ×</button></div>
-      {history.length ? <div className="history-table"><div className="history-row history-header"><span>DATE & TIME</span><span>DOWNLOAD</span><span>UPLOAD</span><span>PING</span><span>JITTER</span></div>{history.map((h,i)=><div className="history-row" key={h.date+i}><span>{new Date(h.date).toLocaleString()}</span><b>{fmt(h.download)} <small>Mbps</small></b><b>{fmt(h.upload)} <small>Mbps</small></b><span>{fmt(h.ping)} ms</span><span>{fmt(h.jitter)} ms</span></div>)}</div> : <div className="empty-history"><span className="empty-icon">⌁</span><div><strong>No test data yet</strong><p>Run your first speed test. Your last 10 results will appear here.</p></div></div>}
+      {history.length ? <div className="history-table"><div className="history-row history-header"><span>DATE & TIME</span><span>DOWNLOAD</span><span>UPLOAD</span><span>PING</span><span>JITTER</span></div>{history.map((h,i)=><div className="history-row" key={h.date+i}><span className="history-date">{new Date(h.date).toLocaleString()}</span><b data-label="DOWNLOAD">{fmt(h.download)} <small>Mbps</small></b><b data-label="UPLOAD">{fmt(h.upload)} <small>Mbps</small></b><span data-label="PING">{fmt(h.ping)} <small>ms</small></span><span data-label="JITTER">{fmt(h.jitter)} <small>ms</small></span></div>)}</div> : <div className="empty-history"><span className="empty-icon">⌁</span><div><strong>No test data yet</strong><p>Run your first speed test. Your last 10 results will appear here.</p></div></div>}
     </section>
     <footer><span>© {new Date().getFullYear()} VIERA SPEEDTEST</span><span>REAL-TIME CONNECTION METRICS</span><button onClick={share} disabled={status !== "done"}>SHARE LAST RESULT ↗</button></footer>
   </main>;
