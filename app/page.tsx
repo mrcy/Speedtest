@@ -202,15 +202,15 @@ export default function Home() {
             <div className="gauge-orbit orbit-one" /><div className="gauge-orbit orbit-two" />
             <div className="gauge-center"><span className="gauge-label">{status === "running" ? phase.toUpperCase() : "YOUR CONNECTION"}</span><strong>{fmt(download)}</strong><span className="unit">Mbps <span className="unit-divider">/</span> DOWNLOAD</span></div>
           </div>
-          <button className="start-button" onClick={startTest} disabled={status === "running"}><span>{status === "running" ? "TEST IN PROGRESS" : status === "done" ? "↻ RUN AGAIN" : "▶ START SPEED TEST"}</span><span className="button-arrow">↗</span></button>
-          <div className="phase-line"><span className={status === "running" ? "pulse" : ""} />{phase}</div>
-          {error && <p className="error-message">{error}</p>}
-          <div className="gauge-foot"><span>LIVE CONNECTION</span><strong>Download · Upload · Latency</strong></div>
           <div className="inside-metrics">
             <div className="inside-metric upload-metric"><span className="inside-label"><i>↑</i> UPLOAD</span><strong>{fmt(upload)} <small>Mbps</small></strong><div className="inside-track"><span style={{width: upload === null ? "0%" : `${Math.min(100, Math.max(4, upload / Math.max(download || 1, upload || 1) * 100))}%`}} /></div></div>
             <div className="inside-metric"><span className="inside-label"><i>◷</i> PING</span><strong>{fmt(ping)} <small>ms</small></strong><span className="inside-note">Latency</span></div>
             <div className="inside-metric jitter-metric"><span className="inside-label"><i>∿</i> JITTER</span><strong>{fmt(jitter)} <small>ms</small></strong><span className="inside-note">Stability</span></div>
           </div>
+          <button className="start-button" onClick={startTest} disabled={status === "running"}><span>{status === "running" ? "TEST IN PROGRESS" : status === "done" ? "↻ RUN AGAIN" : "▶ START SPEED TEST"}</span><span className="button-arrow">↗</span></button>
+          <div className="phase-line"><span className={status === "running" ? "pulse" : ""} />{phase}</div>
+          {error && <p className="error-message">{error}</p>}
+          <div className="gauge-foot"><span>LIVE CONNECTION</span><strong>Download · Upload · Latency</strong></div>
         </div>
       </div>
     </section>
