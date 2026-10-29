@@ -1,27 +1,28 @@
 # NOVA Speedtest PRO
 
-NOVA is a custom Next.js speed-test interface hosted on Vercel. The browser sends test traffic to the application's own Vercel-hosted API routes; it does not use public LibreSpeed nodes or load a third-party test engine.
+NOVA is a custom Next.js speed-test interface. The site UI can be hosted on Vercel while browser test traffic goes directly to public third-party test infrastructure.
+
+## Current test engine
+
+- The browser loads the open-source LibreSpeed JavaScript engine from jsDelivr.
+- It fetches LibreSpeed's public server list and measures the available servers to select a responsive test point.
+- Download, upload, ping, and jitter measurements run in the visitor's browser against the selected public server, not against this Vercel deployment.
+- The last 10 results are stored in the current browser's localStorage.
+- Public servers are independently operated; availability, speed, and CORS/network reachability can vary by location and over time.
 
 ## Deploy to Vercel
 
 1. Import this repository into [Vercel](https://vercel.com/new).
 2. Keep the framework preset as Next.js and the default build settings.
-3. Deploy, then open the generated Vercel URL and run a test.
+3. Deploy, then open the generated URL and test from the browser.
 
-No environment variables are required.
+No environment variables are required for the LibreSpeed integration.
 
-## How this test works
+## Accuracy and limitations
 
-- Ping and jitter are estimated by making uncached requests to the app's own Vercel endpoint.
-- Download is estimated by repeatedly downloading small generated binary chunks from a Vercel Function.
-- Upload is estimated by repeatedly posting small binary chunks to a Vercel Function.
-- The last 10 results are stored in the current browser's localStorage.
+This is a public-server speed test, not a guarantee of ISP-grade benchmarking. Results depend on the user's connection, browser, selected test server, server load, and route between them. The server list and JavaScript engine are loaded from jsDelivr at runtime, so a CDN or network block can prevent testing.
 
-## Important accuracy and platform limits
-
-This is a lightweight, self-hosted-on-Vercel prototype, not an ISP-grade speed test. Measurements include serverless function startup, execution, region, and platform overhead, so they may differ significantly from the user's actual line speed. Vercel Functions have request/response payload limits and plan-dependent execution limits; this implementation intentionally uses small chunks. Repeated tests consume function invocations and bandwidth. Do not treat the results as a benchmark for very fast connections or heavy public traffic.
-
-For accurate high-throughput testing and larger upload/download transfers, use a dedicated high-bandwidth LibreSpeed server or VPS. The website UI can remain on Vercel.
+The M-Lab NDT7 engine is a candidate for a second, independent test mode but is not yet wired into the current interface. M-Lab tests use their own measurement methodology and data policy; any integration should clearly explain that before the test starts.
 
 ## Development
 
@@ -34,4 +35,4 @@ npm run dev
 
 ## Privacy
 
-The test transfers temporary binary data between the browser and this application's Vercel endpoints. The app does not save the transferred payload or send test results to a database. Local history stays in the current browser.
+Test traffic is sent directly from the browser to the selected public LibreSpeed server. The app stores only the last 10 summary results in localStorage on the user's browser. Public server operators may process connection metadata under their own policies. No results database is configured by this app.
